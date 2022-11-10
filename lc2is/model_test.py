@@ -7,14 +7,14 @@ from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 from torchmetrics import JaccardIndex
 
-from dataset.dataset import SegmentationDataset, ClassDataset
-from dataset.collator import Collator, FullClassCollator
-from dataset.utils import save_img
+from data.dataset import SegmentationDataset, ClassDataset
+from data.collator import Collator, FullClassCollator
+from data.utils import save_img
 
 from torch.utils.data import DataLoader
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
-from model.model import Model
+from lc2is.model import Model
 
 def generate_masks(preds: torch.Tensor, sizes: torch.Tensor, id_mapping: torch.Tensor, do_max: bool = True) -> List[torch.Tensor]:
     masks = [

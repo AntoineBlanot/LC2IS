@@ -5,9 +5,9 @@ import torch
 from torch.utils.data import Dataset
 from torchvision.io import ImageReadMode, read_image
 
-from dataset.utils import create_text_file, read_txt_file
+from data.utils import create_text_file, read_txt_file
 
-ADE20K_PATH = os.getcwd() + "/dataset/ade20k/ade20k/ADEChallengeData2016/"
+ADE20K_PATH = os.getcwd() + "/data/ade20k/data/ADEChallengeData2016/"
 
 class SegmentationDataset(Dataset):
 

@@ -1,8 +1,8 @@
 import PIL
 
-from dataset import SegmentationDataset
-from collator import Collator
-from utils import save_img
+from data.dataset import SegmentationDataset
+from data.collator import Collator
+from data.utils import save_img
 
 import torch
 

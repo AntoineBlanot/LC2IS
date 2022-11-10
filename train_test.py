@@ -29,27 +29,27 @@ IMG_SIZE = 512
 LABEL_SIZE = (IMG_SIZE // PATCH_SIZE) * 4
 
 BATCH_SIZE = 16
-DATA_SIZE = BATCH_SIZE * 5
-LR = 1e-3
+DATA_SIZE = 200
+LR = 1e-4
 DROPOUT = 0.1
 WEIGHT_DECAY = 1e-5
 MIXED_PRECISION = True
 
-MAX_EPOCH = 0
-MAX_STEPS = 100
-LOG_STEPS = 10
-EVAL_STEPS = 10
-SAVE_STEPS = 1000
+MAX_EPOCH = 5
+MAX_STEPS = 10000
+LOG_STEPS = 100
+EVAL_STEPS = 100
+SAVE_STEPS = 10000
 
 DEVICE = "cuda"
-RUN_NAME = "512_lr-3"
+RUN_NAME = "ade20k_512_lr-4"
 # WANBD_ARGS = dict(project="segm", name=RUN_NAME, mode="disabled")
-WANBD_ARGS = dict(project="segm", name=RUN_NAME)
+WANBD_ARGS = dict(project="LC2IS-exp", name=RUN_NAME)
 
 def train():
 
     train_data = ClassDataset(name=DATA_NAME, split="training")
-    eval_data = ClassDataset(name=DATA_NAME, split="validation", size=DATA_SIZE)
+    eval_data = ClassDataset(name=DATA_NAME, split="validation")
 
     img_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16", size=IMG_SIZE, crop_size=IMG_SIZE)
     label_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16", image_mean=[0, 0, 0], image_std=[1, 1, 1], resample=PIL.Image.Resampling.NEAREST, do_convert_rgb=False, size=LABEL_SIZE, crop_size=LABEL_SIZE)

@@ -5,9 +5,9 @@ from torch import Tensor, nn
 
 from einops import rearrange
 
-from model.encoder import ImageEncoderCLIP, TextEncoderCLIP
-from model.decoder import DecoderLayer, DecoderBlock
-from model.text_patch import TextToPatch
+from lc2is.encoder import ImageEncoderCLIP, TextEncoderCLIP
+from lc2is.decoder import DecoderLayer, DecoderBlock
+from lc2is.text_patch import TextToPatch
 
 
 class BaseModel(nn.Module):
@@ -20,7 +20,7 @@ class BaseModel(nn.Module):
 
         self.vision_encoder = ImageEncoderCLIP(patch=self.patch)
         # self.text_encoder = TextEncoderCLIP(patch=self.patch)
-        self.text_proto = torch.load("./model/ade20k_prototypes.pt").to(device)
+        self.text_proto = torch.load("./lc2is/ade20k_prototypes.pt").to(device)
         # self.vision_decoder = TransformerDecoder(img_in=768, text_in=512)
         vision_decoder_layer = DecoderLayer(d_model=768, d_kv=512, nhead=8, dropout=dropout, batch_first=True, norm_first=True)
         self.vision_decoder = DecoderBlock(decoder_layer=vision_decoder_layer, num_layers=1)
