@@ -12,10 +12,10 @@ from torch.utils.data import DataLoader
 
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
-from dataset.dataset import SegmentationDataset, ClassDataset
-from dataset.collator import Collator, FullClassCollator
-from dataset.utils import save_img
-from model.model import BaseModel
+from data.dataset import SegmentationDataset, ClassDataset
+from data.collator import Collator, FullClassCollator
+from data.utils import save_img
+from lc2is.model import BaseModel
 
 from metrics import prepare_for_gt_metrics, prepare_for_label_metrics, compute_mIOU
 

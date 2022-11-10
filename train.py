@@ -12,9 +12,9 @@ from torchmetrics import JaccardIndex
 
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
-from dataset.dataset import SegmentationDataset, ClassDataset
-from dataset.collator import Collator, FullClassCollator
-from model.model import BaseModel
+from data.dataset import SegmentationDataset, ClassDataset
+from data.collator import Collator, FullClassCollator
+from lc2is.model import BaseModel
 
 from utils import original_size_interpolate, pad_and_concat
 

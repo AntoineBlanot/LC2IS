@@ -1,3 +1,12 @@
+# Datasets data
+data/ade20k/data/
+
+# Model checkpoints
+checkpoints/
+
+# WandB logs
+wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
