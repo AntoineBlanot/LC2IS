@@ -94,12 +94,12 @@ class ClassDataset(Dataset):
         label = read_image(path=self.label_folder+label_path, mode=ImageReadMode.GRAY).squeeze()
         size = torch.LongTensor([label.size()])
 
-        # class_id = label.unique().tolist()
-        # class_id.remove(0) #since it is not a class
+        class_id = label.unique().tolist()
+        class_id.remove(0) #since it is not a class
         # first name if multiple names for a single class
-        # class_txt = [self.class_info[c-1][0] if c != 0 else "none" for c in class_id]
+        txt = [self.class_info[c-1][0] if c != 0 else "none" for c in class_id]
 
-        return img, label, size
+        return img, label, size, txt
         return img, label, class_id, class_txt, size
     
     def __len__(self):

@@ -64,8 +64,6 @@ class Collator():
         # print(x.unique(), len(x.unique()), x.shape)
         return x
 
-
-
 class FullClassCollator():
 
     def __init__(self, pad_value: int = 0, img_transform: Callable = None, label_transform: Callable = None, **args) -> None:
@@ -75,7 +73,7 @@ class FullClassCollator():
         self.args = args
 
     def __call__(self, features: List[Any]) -> Dict[str, Any]:
-        batch_img, batch_label, batch_size = [list(f) for f in zip(*features)]
+        batch_img, batch_label, batch_size, _ = [list(f) for f in zip(*features)]
         
         # sizes as np.ndarray
         size = torch.cat(batch_size, dim=0)
@@ -126,4 +124,43 @@ class FullClassCollator():
         x = flattened_x.reshape(x.shape)
         # print(x.unique(), len(x.unique()), x.shape)
         return x
+
+class TextCollator():
+
+    def __init__(self, pad_value: int = 0, img_transform: Callable = None, label_transform: Callable = None, txt_transform: Callable = None, **args) -> None:
+        self.pad_value = pad_value
+        self.img_transform = img_transform
+        self.label_transform = label_transform
+        self.text_transform = txt_transform
+        self.args = args
+
+    def __call__(self, features: List[Any]) -> Dict[str, Any]:
+        batch_img, batch_label, batch_size, batch_class_txt = [list(f) for f in zip(*features)]
+        
+        # sizes as np.ndarray
+        size = torch.cat(batch_size, dim=0)
+
+        # image transformation
+        if self.img_transform:
+            img = self.img_transform(batch_img, **self.args)
+
+        # label transformation
+        if self.label_transform:
+            new_batch_label = [label.expand(3, -1, -1) for label in batch_label]
+            label = self.label_transform(new_batch_label, **self.args).pixel_values[:, :1, :, :].squeeze()
+            label = (label * 255).long()
+        else:
+            # label padding (pad on the right and bottom)
+            label = [
+                F.pad(label, pad=(0, 1024 - s[1], 0, 1024 - s[0]), mode="constant", value=self.pad_value).unsqueeze(0)
+                for label, s in zip(batch_label, size)
+            ]
+            label = torch.cat(label, dim=0)
+
+        # text transformation
+        text_list = [", ".join(class_txt) for class_txt in batch_class_txt] 
+        if self.text_transform:
+            txt = self.text_transform(text_list, **self.args)
+
+        return dict(**img, label=label, **txt, size=size), dict(), dict(img=batch_img, label=batch_label, txt=batch_class_txt)
 

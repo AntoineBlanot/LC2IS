@@ -6,6 +6,22 @@ import torch.nn.functional as F
 
 from torchmetrics import JaccardIndex
 
+from functools import wraps
+import time
+from tqdm import tqdm
+
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
+
 def prepare_for_label_metrics(outputs: Tensor, labels: Tensor, scale_factor: int = 4) -> tuple[List[Tensor], List[Tensor]]:
     """Prepare outputs and labels for metric compute. Outputs and labels are upsampled by scale factor then returned as a list of Tensor."""
     outputs = F.interpolate(input=outputs, mode="bicubic", scale_factor=scale_factor)
@@ -24,6 +40,28 @@ def prepare_for_gt_metrics(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor
     ]
 
     return outputs_list, gt_list
+
+
+def compute_gt_mIOU(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor, n_cls: int = 151, ignore_index: Optional[int] = 0) -> float:
+    """Compute mean IOU between list of predictions and list of labels/gt"""
+    softmax2D = nn.Softmax2d()
+    jaccard = JaccardIndex(num_classes=n_cls, average="none")
+    all_mIOU = []
+    for i in tqdm(range(len(gt_list)), desc="Computing mIOU", leave=False):
+        pred = F.interpolate(input=outputs[i].unsqueeze(0), mode="bicubic", size=tuple(sizes[i])).squeeze()
+        classes = gt_list[i].unique()
+        iou = jaccard(softmax2D(pred).unsqueeze(0), gt_list[i].unsqueeze(0))
+        
+        if ignore_index is None:
+            mIOU = iou[classes.long()].mean(dim=0, keepdim=True)
+        else:
+            mIOU = iou[classes[classes != ignore_index].long()].mean(dim=0, keepdim=True)
+        
+        all_mIOU.append(mIOU)
+
+    mIOU = torch.concat(all_mIOU).mean().item()
+    return dict(mIOU=mIOU)
+
 
 def compute_mIOU(pred: List[Tensor], label: list[Tensor], n_cls: int, ignore_index: Optional[int] = 0) -> float:
     """Compute mean IOU between list of predictions and list of labels/gt"""

@@ -18,8 +18,8 @@ class ImageEncoderCLIP(torch.nn.Module):
         self.enc.vision_model.embeddings.position_embedding.weight = torch.nn.Parameter(self.pos_emebedding_interpolate(tgt_size=32))
 
 
-    def forward(self, inputs):
-        return self.enc(inputs).last_hidden_state[:, 1:, :]
+    def forward(self, pixel_values):
+        return self.enc(pixel_values=pixel_values).last_hidden_state[:, 1:, :]
     
     def pos_emebedding_interpolate(self, tgt_size: int, ignore_index: int = 1):
         """2D Interpolate the pos embedding of ViT because it has only been pre-trained on 224*224 size images"""
@@ -43,5 +43,5 @@ class TextEncoderCLIP(torch.nn.Module):
 
         self.enc = CLIPTextModel.from_pretrained(path)
 
-    def forward(self, input_ids, attention_mask = None):
-        return self.enc(input_ids, attention_mask).pooler_output
+    def forward(self, input_ids, attention_mask):
+        return self.enc(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state

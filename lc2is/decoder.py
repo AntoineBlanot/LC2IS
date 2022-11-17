@@ -55,6 +55,6 @@ class DecoderBlock(nn.TransformerDecoder):
     def __init__(self, decoder_layer, num_layers, norm=None):
         super().__init__(decoder_layer, num_layers, norm)
 
-    def forward(self, img: Tensor, text: Tensor, tgt_mask: Optional[Tensor] = None, memory_mask: Optional[Tensor] = None, tgt_key_padding_mask: Optional[Tensor] = None, memory_key_padding_mask: Optional[Tensor] = None) -> Tensor:
-        return super().forward(img, text, tgt_mask, memory_mask, tgt_key_padding_mask, memory_key_padding_mask)
+    def forward(self, tgt: Tensor, memory: Tensor, tgt_mask: Optional[Tensor] = None, memory_mask: Optional[Tensor] = None, tgt_key_padding_mask: Optional[Tensor] = None, memory_key_padding_mask: Optional[Tensor] = None) -> Tensor:
+        return super().forward(tgt, memory, tgt_mask, memory_mask, tgt_key_padding_mask, memory_key_padding_mask)
         
