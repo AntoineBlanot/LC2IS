@@ -27,12 +27,13 @@ class Engine():
         self.lr_scheduler = lr_scheduler
         self.device = device
         self.fp16 = fp16
-
+        self.model.to(self.device)
+        
         self.train_loader = train_loader
         self.eval_loader = eval_loader
         self.compute_metrics = compute_metrics
 
-        self.steps_in_epoch = len(train_loader)
+        self.steps_in_epoch = len(train_loader) if train_loader is not None else 0
         self.train_steps = max(self.steps_in_epoch*max_epoch, max_steps) if max_steps is not None else self.steps_in_epoch*max_epoch
         self.eval_step = self.steps_in_epoch if eval_step is None else eval_step
         self.log_step = self.steps_in_epoch if log_step is None else log_step
@@ -41,11 +42,8 @@ class Engine():
         
         self.logger = logger
         self.logger_args = logger_args
-
-        print(self.train_steps, self.eval_step, self.log_step, self.save_step)
     
     def train(self) -> Tuple[Dict[str, float], str]:
-        self.model.to(self.device)
 
         if self.logger == "wandb":
             wandb.init(**self.logger_args)
@@ -58,8 +56,7 @@ class Engine():
 
         if self.fp16:
             self.scaler = torch.cuda.amp.GradScaler()
-        
-        self.model.train()
+
         while not self.stop_train:
             metrics, save_path = self.train_loop()
 
@@ -67,6 +64,7 @@ class Engine():
         return metrics, save_path
 
     def train_loop(self):
+        self.model.train()
         for data in self.train_loader:
             self.train_step += 1
 
@@ -109,7 +107,18 @@ class Engine():
         return metrics, save_path
 
     def evaluate(self) -> Tuple[float, Any]:
-        self.model.to(self.device)
+        eval_loss, eval_outputs = self.eval_loop()
+
+        if self.compute_metrics is not None:
+            eval_metrics = self.compute_metrics(*eval_outputs)
+            eval_metrics = {**dict(eval_loss=eval_loss), **{"eval_"+k: v for k,v in eval_metrics.items()}}
+            return eval_metrics
+        else:
+            eval_metrics = dict(eval_loss=eval_loss)
+            return eval_metrics
+
+
+    def eval_loop(self) -> Tuple[float, Any]:
         self.model.eval()
 
         eval_steps = len(self.eval_loader)
@@ -139,6 +148,7 @@ class Engine():
         eval_loss = np.array(all_loss).mean()
         return ((eval_loss), (all_out, all_label, all_gt, all_size))
 
+
     def log(self) -> Dict[str, float]:
         train_step = self.train_step
         train_epoch = round(self.train_step / self.steps_in_epoch, 4)
@@ -164,15 +174,9 @@ class Engine():
 
     def should_eval(self) -> Dict[str, float]:
         if self.eval_loader is not None and ((self.train_step % self.eval_step) == 0):
-            eval_loss, eval_outputs = self.evaluate()
+            self.eval_metrics = self.evaluate()
             self.model.train()
-            if self.compute_metrics is not None:
-                eval_metrics = self.compute_metrics(*eval_outputs)
-                self.eval_metrics = {**dict(eval_loss=eval_loss), **{"eval_"+k: v for k,v in eval_metrics.items()}}
-                return self.eval_metrics
-            else:
-                self.eval_metrics = dict(eval_loss=eval_loss)
-                return self.eval_metrics
+            return self.eval_metrics
         else:
             return None
 

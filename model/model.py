@@ -81,7 +81,7 @@ class BaseModelWithText(nn.Module):
 
         self.vision_encoder = ImageEncoderCLIP(patch=self.patch)
         self.text_encoder = TextEncoderCLIP(patch=self.patch)
-        self.class_prototypes = nn.Parameter(torch.load("./lc2is/ade20k_prototypes.pt"), requires_grad=True)
+        self.class_prototypes = nn.Parameter(torch.load("./model/ade20k_prototypes.pt"), requires_grad=True)
         vision_decoder_layer = DecoderLayer(d_model=768, d_kv=512, nhead=8, dropout=dropout, batch_first=True, norm_first=True)
         self.vision_decoder = DecoderBlock(decoder_layer=vision_decoder_layer, num_layers=1)
         self.pixel_patch = TextToPatch(out=512, img_in=768, text_in=512)

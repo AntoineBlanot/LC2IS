@@ -1,5 +1,5 @@
 # Base arguments
-NAME="test"
+NAME="overfit"
 OUT_DIR="./experience/"
 SEED=1024
 
@@ -17,7 +17,7 @@ DROPOUT=0
 WEIGHT_DECAY=0
 DEVICE="cuda"
 FP16=False
-MAX_EPOCH=10
+MAX_EPOCH=200
 
 # Logging arguments
 WANDB_PROJECT="LC2IS-exp"
