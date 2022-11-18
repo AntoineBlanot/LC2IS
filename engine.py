@@ -8,14 +8,15 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 
+import wandb
+
 class Engine():
     def __init__(self, name: str, 
         model: nn.Module, optimizer: optim = None, criterion: nn = None, lr_scheduler: optim.lr_scheduler = None,
         device = "cuda", fp16: bool = True,
         train_loader : DataLoader = None, eval_loader: DataLoader = None, compute_metrics: Callable = None,
-        max_epoch: int = 1, max_steps: int = 500, eval_step: Union[str, int] = "epoch", log_step: Union[str, int] = "epoch",
-        save_step: Union[str, int] = "epoch", save_dir: str = "./checkpoints/",
-        logger: str = "wandb", logger_args: Dict = None
+        max_epoch: int = 1, max_steps: int = None, eval_step: int = None, log_step: int = None, save_step: int = None,
+        out_dir: str = "./", logger: str = "wandb", logger_args: Dict = None
     ) -> None:
 
         self.name = name
@@ -32,20 +33,23 @@ class Engine():
         self.compute_metrics = compute_metrics
 
         self.steps_in_epoch = len(train_loader)
-        self.train_steps = max(self.steps_in_epoch*max_epoch, max_steps)
-        self.eval_step = self.steps_in_epoch if eval_step == "epoch" else eval_step
-        self.log_step = self.steps_in_epoch if log_step == "epoch" else log_step
-        self.save_step = self.steps_in_epoch if save_step == "epoch" else save_step
-        self.save_dir = save_dir
+        self.train_steps = max(self.steps_in_epoch*max_epoch, max_steps) if max_steps is not None else self.steps_in_epoch*max_epoch
+        self.eval_step = self.steps_in_epoch if eval_step is None else eval_step
+        self.log_step = self.steps_in_epoch if log_step is None else log_step
+        self.save_step = self.steps_in_epoch if save_step is None else save_step
+        self.out_dir = out_dir + name + "/"
         
         self.logger = logger
-        if logger == "wandb":
-            import wandb
-            wandb.init(**logger_args)
-            wandb.watch(self.model, log_freq=log_step)
+        self.logger_args = logger_args
+
+        print(self.train_steps, self.eval_step, self.log_step, self.save_step)
     
     def train(self) -> Tuple[Dict[str, float], str]:
         self.model.to(self.device)
+
+        if self.logger == "wandb":
+            wandb.init(**self.logger_args)
+            wandb.watch(self.model, log_freq=self.log_step)
         self.train_progress = tqdm(range(self.train_steps), desc="Training")
 
         self.stop_train = False
@@ -59,6 +63,7 @@ class Engine():
         while not self.stop_train:
             metrics, save_path = self.train_loop()
 
+        wandb.finish()
         return metrics, save_path
 
     def train_loop(self):
@@ -112,7 +117,7 @@ class Engine():
 
         all_loss = []
         self.eval_metrics = {}
-        all_out, all_gt, all_size = None, None, None
+        all_out, all_label, all_gt, all_size = None, None, None, None
 
         for data in self.eval_loader:
 
@@ -127,11 +132,12 @@ class Engine():
 
             all_loss.append(loss.item())
             all_out = torch.concat([all_out, outputs.cpu()]) if all_out is not None else outputs.cpu()
+            all_label = torch.concat([all_label, inputs["label"].cpu()]) if all_label is not None else inputs["label"].cpu()
             all_gt = all_gt + originals["label"] if all_gt is not None else originals["label"]
             all_size = torch.concat([all_size, inputs["size"].cpu()]) if all_size is not None else inputs["size"].cpu()
 
         eval_loss = np.array(all_loss).mean()
-        return ((eval_loss), (all_out, all_gt, all_size))
+        return ((eval_loss), (all_out, all_label, all_gt, all_size))
 
     def log(self) -> Dict[str, float]:
         train_step = self.train_step
@@ -149,11 +155,11 @@ class Engine():
         return metrics
 
     def save(self) -> str:
-        Path(self.save_dir).mkdir(parents=True, exist_ok=True)
-        save_path = self.save_dir + self.name + "/step-" + self.train_step + ".pt"
-        torch.save(self.model.state_dict(), save_path)
+        checkpoints_dir = self.out_dir + "checkpoints/"
+        Path(checkpoints_dir).mkdir(parents=True, exist_ok=True)
+        torch.save(self.model.state_dict(), checkpoints_dir+"step-" + str(self.train_step) + ".pt")
         
-        return save_path
+        return checkpoints_dir
 
 
     def should_eval(self) -> Dict[str, float]:
@@ -162,10 +168,11 @@ class Engine():
             self.model.train()
             if self.compute_metrics is not None:
                 eval_metrics = self.compute_metrics(*eval_outputs)
-                self.eval_metrics = eval_metrics
-                return {**dict(eval_loss=eval_loss), **eval_metrics}
+                self.eval_metrics = {**dict(eval_loss=eval_loss), **{"eval_"+k: v for k,v in eval_metrics.items()}}
+                return self.eval_metrics
             else:
-                return dict(eval_loss=eval_loss)
+                self.eval_metrics = dict(eval_loss=eval_loss)
+                return self.eval_metrics
         else:
             return None
 

@@ -1,22 +1,19 @@
 import PIL
 
-import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
 from engine import Engine
 from data.dataset import ClassDataset
 from data.collator import TextCollator
 from lc2is.model import BaseModelWithText
-from metrics import compute_gt_mIOU
+from metrics import segmentation_metrics
 
-name = "overfit"
+name = "overfit_adam"
 model = BaseModelWithText(patch=16, in_size=512, out_size=128, dropout=0)
 optimizer = optim.Adam(params=model.parameters(), lr=1e-5)
 criterion = nn.CrossEntropyLoss()
-
 
 train_data = ClassDataset(name="ade20k", split="training", size=16*4)
 eval_data = ClassDataset(name="ade20k", split="training", size=16*4)
@@ -31,8 +28,9 @@ trainer = Engine(
     name=name,
     model=model, optimizer=optimizer, criterion=criterion, lr_scheduler=None,
     device="cuda", fp16=False,
-    train_loader=train_loader, eval_loader=eval_loader, compute_metrics=compute_gt_mIOU,
-    max_epoch=100, max_steps=-1, eval_step="epoch", log_step="epoch", save_step=-100, save_dir="./", logger=None
+    train_loader=train_loader, eval_loader=eval_loader, compute_metrics=segmentation_metrics,
+    max_epoch=100, max_steps=-1, eval_step="epoch", log_step="epoch", save_step=400,
+    save_dir="checkpoints/", logger="wandb", logger_args=dict(project="LC2IS-exp", name="overfit")
 )
 
 metrics, save_path = trainer.train()
