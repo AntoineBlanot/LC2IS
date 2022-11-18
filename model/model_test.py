@@ -14,7 +14,7 @@ from data.utils import save_img
 from torch.utils.data import DataLoader
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
-from lc2is.model import Model
+from model.model import Model
 
 def generate_masks(preds: torch.Tensor, sizes: torch.Tensor, id_mapping: torch.Tensor, do_max: bool = True) -> List[torch.Tensor]:
     masks = [

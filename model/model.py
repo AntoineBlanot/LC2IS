@@ -5,9 +5,9 @@ from torch import Tensor, nn
 
 from einops import rearrange
 
-from lc2is.encoder import ImageEncoderCLIP, TextEncoderCLIP
-from lc2is.decoder import DecoderLayer, DecoderBlock
-from lc2is.text_patch import TextToPatch
+from model.encoder import ImageEncoderCLIP, TextEncoderCLIP
+from model.decoder import DecoderLayer, DecoderBlock
+from model.text_patch import TextToPatch
 
 
 class BaseModel(nn.Module):

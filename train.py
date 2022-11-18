@@ -12,7 +12,7 @@ from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 from engine import Engine
 from data.dataset import ClassDataset
 from data.collator import TextCollator
-from lc2is.model import BaseModelWithText
+from model.model import BaseModelWithText
 from metrics import segmentation_metrics
 
 def get_args():

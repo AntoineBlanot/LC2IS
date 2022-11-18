@@ -42,12 +42,28 @@ def prepare_for_gt_metrics(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor
     return outputs_list, gt_list
 
 
-def compute_gt_mIOU(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor, n_cls: int = 151, ignore_index: Optional[int] = 0) -> float:
-    """Compute mean IOU between list of predictions and list of labels/gt"""
+def segmentation_metrics(outputs: Tensor, labels: Tensor, gt_list: List[Tensor], sizes: Tensor, n_clas: int = 151, ignore_index: Optional[int] = 0) -> dict[str, float]:
+    """Compute segmentation metrics"""
+    do_labels, do_gt = True, True
+    segm_metrics = {}
+    
+    if do_labels:
+        label_outputs, label_labels = prepare_for_label_metrics(outputs=outputs, labels=labels, scale_factor=4)
+        label_mIOU = compute_mIOU(pred=label_outputs, label=label_labels, n_cls=n_clas, ignore_index=ignore_index)
+        segm_metrics = {**segm_metrics, **label_mIOU}
+    if do_gt:
+        gt_mIOU = compute_gt_mIOU(outputs=outputs, gt_list=gt_list, sizes=sizes, n_cls=n_clas, ignore_index=ignore_index)
+        segm_metrics = {**segm_metrics, **gt_mIOU}
+    
+    return segm_metrics
+    
+
+def compute_gt_mIOU(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor, n_cls: int = 151, ignore_index: Optional[int] = 0) -> dict[str, float]:
+    """Compute mean IOU between list of predictions and list of ground truth labels"""
     softmax2D = nn.Softmax2d()
     jaccard = JaccardIndex(num_classes=n_cls, average="none")
     all_mIOU = []
-    for i in tqdm(range(len(gt_list)), desc="Computing mIOU", leave=False):
+    for i in tqdm(range(len(gt_list)), desc="Computing mIOU on gt", leave=False):
         pred = F.interpolate(input=outputs[i].unsqueeze(0), mode="bicubic", size=tuple(sizes[i])).squeeze()
         classes = gt_list[i].unique()
         iou = jaccard(softmax2D(pred).unsqueeze(0), gt_list[i].unsqueeze(0))
@@ -60,15 +76,15 @@ def compute_gt_mIOU(outputs: Tensor, gt_list: List[Tensor], sizes: Tensor, n_cls
         all_mIOU.append(mIOU)
 
     mIOU = torch.concat(all_mIOU).mean().item()
-    return dict(mIOU=mIOU)
+    return dict(mIOU_gt=mIOU)
 
 
-def compute_mIOU(pred: List[Tensor], label: list[Tensor], n_cls: int, ignore_index: Optional[int] = 0) -> float:
-    """Compute mean IOU between list of predictions and list of labels/gt"""
+def compute_mIOU(pred: List[Tensor], label: list[Tensor], n_cls: int, ignore_index: Optional[int] = 0) -> dict[str, float]:
+    """Compute mean IOU between list of predictions and list of labels"""
     softmax2D = nn.Softmax2d()
     jaccard = JaccardIndex(num_classes=n_cls, average="none")
     all_mIOU = []
-    for i in range(len(pred)):
+    for i in tqdm(range(len(pred)), desc="Computing mIOU on label", leave=False):
         classes = label[i].unique()
         iou = jaccard(softmax2D(pred[i]).unsqueeze(0), label[i].unsqueeze(0))
         
@@ -79,7 +95,8 @@ def compute_mIOU(pred: List[Tensor], label: list[Tensor], n_cls: int, ignore_ind
         
         all_mIOU.append(mIOU)
 
-    return torch.concat(all_mIOU).mean().item()
+    mIOU = torch.concat(all_mIOU).mean().item()
+    return dict(mIOU_label=mIOU)
 
 
 
