@@ -1,10 +1,9 @@
 # Base arguments
-NAME="overfit"
+NAME="test"
 OUT_DIR="./experience/"
 SEED=1024
 
 # Data arguments
-DATA_NAME="ade20k"
 DATA_SIZE=64
 
 # Training arguments
@@ -23,7 +22,7 @@ MAX_EPOCH=200
 WANDB_PROJECT="LC2IS-exp"
 
 python train.py --name $NAME --out_dir $OUT_DIR --seed $SEED \
-    --data_name $DATA_NAME --data_size $DATA_SIZE \
+    --data_size $DATA_SIZE \
     --patch_size $PATCH_SIZE --img_size $IMG_SIZE --label_size $LABEL_SIZE \
     --batch_size $BATCH_SIZE --lr $LR --dropout $DROPOUT --weight_decay $WEIGHT_DECAY --device $DEVICE --fp16 $FP16 \
     --max_epoch $MAX_EPOCH \

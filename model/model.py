@@ -88,13 +88,16 @@ class BaseModelWithText(nn.Module):
         
     def forward(self, inputs) -> Tuple[Tensor]:
 
-        enc_v = self.vision_encoder(pixel_values=inputs["pixel_values"])
+        vision_inputs = {k:v for k,v in inputs.items() if k in ["pixel_values"]}
+        text_inputs = {k:v for k,v in inputs.items() if k in ["input_ids", "attention_mask"]}
+
+        enc_v = self.vision_encoder(**vision_inputs)
         # print("Vision encoder {} {}".format(enc_v.shape, enc_v.dtype))
 
-        enc_t = self.text_encoder(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"])
+        enc_t = self.text_encoder(**text_inputs)
         # print("Textual encoder {} {}".format(enc_t.shape, enc_t.dtype))
 
-        dec_v = self.vision_decoder(tgt=enc_v, memory=enc_t, memory_key_padding_mask=torch.where(inputs["attention_mask"] == 1, False, True))
+        dec_v = self.vision_decoder(tgt=enc_v, memory=enc_t, memory_key_padding_mask=torch.where(text_inputs["attention_mask"] == 1, False, True))
         # print("Vision decoder {} {}".format(dec_v.shape, dec_v.dtype))
 
         H = self.in_size // self.patch

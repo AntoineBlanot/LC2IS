@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Tuple
 from tqdm import tqdm
 from pathlib import Path
 
@@ -68,21 +68,23 @@ class Engine():
         for data in self.train_loader:
             self.train_step += 1
 
-            inputs, mappings, originals = data
+            inputs, classes, sizes, originals = data
+            
             inputs = {k: v.to(self.device) for k,v in inputs.items()}
+            labels = inputs.pop("label")
 
             self.optimizer.zero_grad()
             if self.fp16:
                 with torch.autocast(device_type=self.device, dtype=torch.float16):
                     _, _, outputs = self.model(inputs)
-                    loss = self.criterion(outputs, inputs["label"])
+                    loss = self.criterion(outputs, labels)
 
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
             else:
                 _, _, outputs = self.model(inputs)
-                loss = self.criterion(outputs, inputs["label"])
+                loss = self.criterion(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
 
@@ -130,20 +132,24 @@ class Engine():
 
         for data in self.eval_loader:
 
-            inputs, mappings, originals = data
+            inputs, classes, sizes, originals = data
+
             inputs = {k: v.to(self.device) for k,v in inputs.items()}
+            labels = inputs.pop("label")
+            sizes = sizes["size"]
+            ground_truths = originals["label"]
 
             with torch.no_grad():
                 _, _, outputs = self.model(inputs)
-                loss = self.criterion(outputs, inputs["label"])
+                loss = self.criterion(outputs, labels)
 
             eval_progress.update()
 
             all_loss.append(loss.item())
             all_out = torch.concat([all_out, outputs.cpu()]) if all_out is not None else outputs.cpu()
-            all_label = torch.concat([all_label, inputs["label"].cpu()]) if all_label is not None else inputs["label"].cpu()
-            all_gt = all_gt + originals["label"] if all_gt is not None else originals["label"]
-            all_size = torch.concat([all_size, inputs["size"].cpu()]) if all_size is not None else inputs["size"].cpu()
+            all_label = torch.concat([all_label, labels.cpu()]) if all_label is not None else labels.cpu()
+            all_gt = all_gt + ground_truths if all_gt is not None else ground_truths
+            all_size = torch.concat([all_size, sizes]) if all_size is not None else sizes
 
         eval_loss = np.array(all_loss).mean()
         return ((eval_loss), (all_out, all_label, all_gt, all_size))

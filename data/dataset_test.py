@@ -1,7 +1,7 @@
 import PIL
 
-from data.dataset import SegmentationDataset
-from data.collator import Collator
+from data.dataset import ADE20K_Dataset
+from data.collator import JoinTextCollator
 from data.utils import save_img
 
 import torch
@@ -10,12 +10,12 @@ def test_SegmentationDataset():
     from torch.utils.data import DataLoader
     from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
-    data = SegmentationDataset(name="ade20k", split="training")
+    data = ADE20K_Dataset()
 
     img_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16")
     label_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16", image_mean=[0, 0, 0], image_std=[1, 1, 1], resample=PIL.Image.Resampling.NEAREST, do_convert_rgb=False)
     txt_transform = CLIPTokenizerFast.from_pretrained("openai/clip-vit-base-patch16")
-    collate = Collator(img_transform=img_transform, txt_transform=txt_transform, label_transform=label_transform, return_tensors="pt", padding=True)
+    collate = JoinTextCollator(img_transform=img_transform, txt_transform=txt_transform, label_transform=label_transform, join_text=", ", return_tensors="pt", padding=True)
     loader = DataLoader(dataset=data, batch_size=20, collate_fn=collate)
 
     index = 10

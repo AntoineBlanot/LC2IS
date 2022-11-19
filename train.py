@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 from transformers import CLIPFeatureExtractor, CLIPTokenizerFast
 
 from engine import Engine
-from data.dataset import ClassDataset
-from data.collator import TextCollator
+from data.dataset import ADE20K_Dataset
+from data.collator import JoinTextCollator
 from model.model import BaseModelWithText
 from metrics import segmentation_metrics
 
@@ -60,12 +60,12 @@ with open(args.out_dir+args.name+"/config.json", "w") as fp:
 
 # Build dataset and data loaders
 torch.manual_seed(args.seed)
-train_data = ClassDataset(name=args.data_name, split="training", size=args.data_size)
-eval_data = ClassDataset(name=args.data_name, split="training", size=args.data_size)
+train_data = ADE20K_Dataset(split="training", size=args.data_size)
+eval_data = ADE20K_Dataset(split="training", size=args.data_size)
 img_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16", size=args.img_size, crop_size=args.img_size)
 label_transform = CLIPFeatureExtractor.from_pretrained("openai/clip-vit-base-patch16", image_mean=[0, 0, 0], image_std=[1, 1, 1], resample=PIL.Image.Resampling.NEAREST, do_convert_rgb=False, size=args.label_size, crop_size=args.label_size)
 txt_transform = CLIPTokenizerFast.from_pretrained("openai/clip-vit-base-patch16")
-collate = TextCollator(img_transform=img_transform, label_transform=label_transform, txt_transform=txt_transform, return_tensors="pt", padding=True)
+collate = JoinTextCollator(img_transform=img_transform, label_transform=label_transform, txt_transform=txt_transform, return_tensors="pt", padding=True)
 train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, collate_fn=collate)
 eval_loader = DataLoader(dataset=eval_data, batch_size=args.batch_size, collate_fn=collate, shuffle=False)
 
