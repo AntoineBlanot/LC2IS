@@ -1,4 +1,4 @@
-NAME="./experience/overfit_adam/step-400.pt"
+NAME="./experience/overfit/checkpoints/step-400.pt"
 OUT_DIR="./experience/"
 SEED=1024
 
