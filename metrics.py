@@ -24,8 +24,8 @@ def timeit(func):
 
 def prepare_for_label_metrics(outputs: Tensor, labels: Tensor, scale_factor: int = 4) -> tuple[List[Tensor], List[Tensor]]:
     """Prepare outputs and labels for metric compute. Outputs and labels are upsampled by scale factor then returned as a list of Tensor."""
-    # outputs = F.interpolate(input=outputs, mode="bicubic", scale_factor=scale_factor)
-    # labels = F.interpolate(input=labels.view(-1, 1, labels.shape[-1], labels.shape[-1]).float(), mode="nearest", scale_factor=scale_factor).squeeze().long()
+    outputs = F.interpolate(input=outputs, mode="bicubic", scale_factor=scale_factor)
+    labels = F.interpolate(input=labels.view(-1, 1, labels.shape[-1], labels.shape[-1]).float(), mode="nearest", scale_factor=scale_factor).squeeze().long()
 
     outputs_list = [x for x in outputs]
     labels_list = [x for x in labels]

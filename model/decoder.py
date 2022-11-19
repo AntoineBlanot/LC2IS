@@ -5,7 +5,7 @@ from torch import nn, Tensor
 import torch.nn.functional as F
 
 
-class TransformerDecoder(torch.nn.Module):
+class MyTransformerDecoder(torch.nn.Module):
 
     def __init__(self, img_in: int = 768, text_in: int = 512, dim_feedforward: int = 2048, dropout: float = 0.1) -> None:
         super().__init__()

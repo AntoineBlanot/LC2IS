@@ -71,7 +71,7 @@ eval_loader = DataLoader(dataset=eval_data, batch_size=args.batch_size, collate_
 
 
 # Build model, optimizer, criterion and lr_scheduler
-model = BaseModelWithText(patch=args.patch_size, in_size=args.img_size, out_size=args.label_size, dropout=args.dropout)
+model = BaseModelWithText(patch_size=args.patch_size, in_size=args.img_size, out_size=args.label_size, dropout=args.dropout, num_layers=3)
 optimizer = optim.Adam(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 criterion = nn.CrossEntropyLoss()
 lr_sceduler = None
