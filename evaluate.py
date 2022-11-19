@@ -52,12 +52,6 @@ def get_args():
 
 args = get_args()
 
-# Save config
-Path(args.out_dir+args.name+"/").mkdir(parents=True, exist_ok=True)
-with open(args.out_dir+args.name+"/config.json", "w") as fp:
-    json.dump(vars(args), fp)
-
-
 # Build dataset and data loaders
 torch.manual_seed(args.seed)
 eval_data = ClassDataset(name=args.data_name, split="training", size=args.data_size)
