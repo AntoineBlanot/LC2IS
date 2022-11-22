@@ -62,3 +62,20 @@ class TextEncoderCLIP(nn.Module):
 
     def hidden_size(self) -> int:
         return self.enc.config.hidden_size
+
+class TextEncoderCLIPPooler(nn.Module):
+
+    def __init__(self, patch_size: int = 16) -> None:
+        super().__init__()
+        self.patch_size = patch_size
+
+        if self.patch_size == 16:
+            path = "openai/clip-vit-base-patch16"
+
+        self.enc = CLIPTextModel.from_pretrained(path)
+
+    def forward(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
+        return self.enc(input_ids=input_ids, attention_mask=attention_mask).pooler_output
+
+    def hidden_size(self) -> int:
+        return self.enc.config.hidden_size

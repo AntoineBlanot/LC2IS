@@ -8,11 +8,12 @@ class TextToPatch(nn.Module):
         # img   (batch, patches, img_in)   -->     (batch, patches, out)
         # text  (classes, text_in)          -->    (classes, out)
 
-        self.visual = nn.Linear(in_features=img_in, out_features=out)
         self.textual = nn.Linear(in_features=text_in, out_features=out)
+        self.visual = nn.Linear(in_features=img_in, out_features=out)
     
     def forward(self, img: Tensor, text: Tensor) -> tuple[Tensor, Tensor]:
-        v_feature = self.visual(img)
-        t_feature = self.textual(text)
 
-        return v_feature, t_feature
+        t_feature = self.textual(text)
+        v_feature = self.visual(img)
+
+        return t_feature, v_feature

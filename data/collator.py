@@ -114,3 +114,52 @@ class JoinTextCollator():
         
         return inputs, classes, sizes, originals
 
+
+class FullClassesCollator():
+
+    def __init__(self, img_transform: Callable, label_transform: Callable = None, txt_transform: Callable = None, join_text: str = ", ", pad_value: int = 0, **args) -> None:
+        self.pad_value = pad_value
+        self.join_text = join_text
+        self.img_transform = img_transform
+        self.label_transform = label_transform
+        if self.label_transform is None:
+            self.LABEL_SIZE = 1024
+        self.text_transform = txt_transform
+        self.args = args
+
+    def __call__(self, features: List[Any]) -> Tuple[Dict]:
+        img_list, label_list, size_list, class_texts_list, class_ids_list, classes_list = [list(f) for f in zip(*features)]
+
+        # image transformation
+        if self.img_transform:
+            imgs = self.img_transform(img_list, **self.args)
+
+        # label transformation
+        if self.label_transform:
+            label_list_expand = [label.expand(3, -1, -1) for label in label_list]          # need to expand on RGB channel to use HuggingFace's Feature Extractor
+            labels = self.label_transform(label_list_expand, **self.args)
+            labels = (labels.pixel_values[:, 0, :, :] * 255).long()      # only take the first element on the expanded channel, also convert to int classes
+        else:
+            # if no transformation we have to pad labels to create Tensor
+            label_list = [
+                F.pad(label, pad=(0, self.LABEL_SIZE - s[1], 0, self.LABEL_SIZE - s[0]), mode="constant", value=self.pad_value).unsqueeze(0)
+                for label, s in zip(label_list, size_list)
+            ]
+            labels = torch.cat(label_list, dim=0)
+
+        # text transformation
+        classes = list(set(sum(classes_list, [])))
+        if self.text_transform:
+            texts = self.text_transform(classes, **self.args)
+
+        # sizes
+        sizes = torch.cat(size_list, dim=0)
+
+        # format output
+        inputs = dict(**imgs, label=labels, **texts)
+        classes = dict(text=class_texts_list, id=class_ids_list)
+        sizes = dict(size=sizes)
+        originals = dict(img=img_list, label=label_list, size=size_list, text=class_texts_list, id=class_ids_list)
+        
+        return inputs, classes, sizes, originals
+
