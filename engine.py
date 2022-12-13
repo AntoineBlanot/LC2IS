@@ -14,7 +14,7 @@ import wandb
 class Engine():
     def __init__(self, name: str, 
         model: nn.Module, optimizer: optim = None, criterion: nn = None, lr_scheduler: optim.lr_scheduler = None,
-        device = "cuda", fp16: bool = False, aux_criterion: nn = None,
+        device = "cuda", fp16: bool = False,
         train_loader : DataLoader = None, eval_loader: DataLoader = None, compute_metrics: Callable = None,
         max_epoch: int = 1, max_steps: int = None, eval_step: int = None, log_step: int = None, save_step: int = None,
         out_dir: str = "./", logger: str = "wandb", logger_args: dict = None
@@ -29,7 +29,6 @@ class Engine():
         self.device = device
         self.fp16 = fp16
         self.model.to(self.device)
-        self.aux_criterion = aux_criterion
         
         self.train_loader = train_loader
         self.eval_loader = eval_loader
@@ -82,7 +81,7 @@ class Engine():
                     train_loss = self.criterion(outputs_dict["outputs"], labels)
                     losses_dict = dict(train_loss=train_loss.item())
                     if "low_score_map" in outputs_dict.keys():
-                        aux_loss = self.aux_criterion(outputs_dict["low_score_map"], labels)
+                        aux_loss = self.criterion(outputs_dict["low_score_map"], labels)
                         losses_dict.update(dict(aux_loss=aux_loss.item() * 0.4))
                     loss = sum([v for v in losses_dict.values()])
 
@@ -94,7 +93,7 @@ class Engine():
                 train_loss = self.criterion(outputs_dict["outputs"], labels)
                 losses_dict = dict(train_loss=train_loss)
                 if "low_score_map" in outputs_dict.keys():
-                    train_aux_loss = self.aux_criterion(outputs_dict["low_score_map"], labels)
+                    train_aux_loss = self.criterion(outputs_dict["low_score_map"], labels)
                     losses_dict.update(dict(train_aux_loss=train_aux_loss * 0.4))
                 loss = torch.stack([v for v in losses_dict.values()]).sum()
                 loss.backward()
@@ -138,7 +137,7 @@ class Engine():
         eval_progress = tqdm(range(eval_steps), desc="Evaluation", leave=False)
 
         self.all_eval_metrics = {}
-        all_outputs, all_labels = None, None
+        all_outputs, all_labels = [], []
 
         for data in self.eval_loader:
             inputs, metas = data
@@ -150,7 +149,7 @@ class Engine():
                 eval_loss = self.criterion(outputs_dict["outputs"], labels)
                 losses_dict = dict(eval_loss=eval_loss)
                 if "low_score_map" in outputs_dict.keys():
-                    eval_aux_loss = self.aux_criterion(outputs_dict["low_score_map"], labels)
+                    eval_aux_loss = self.criterion(outputs_dict["low_score_map"], labels)
                     losses_dict.update(dict(eval_aux_loss=eval_aux_loss * 0.4))
 
             eval_progress.update()
@@ -159,9 +158,11 @@ class Engine():
                 k: self.all_eval_metrics[k] + [v.item()] if k in self.all_eval_metrics.keys() else [v.item()]
                 for k,v in losses_dict.items()
             }
-            all_outputs = torch.concat([all_outputs, outputs_dict["outputs"].cpu()]) if all_outputs is not None else outputs_dict["outputs"].cpu()
-            all_labels = torch.concat([all_labels, labels.cpu()]) if all_labels is not None else labels.cpu()
+            all_outputs.append(outputs_dict["outputs"].cpu())
+            all_labels.append(labels.cpu())
 
+        all_outputs = torch.cat(all_outputs, dim=0)
+        all_labels = torch.cat(all_labels, dim=0)
         eval_metrics = {k: np.array(v).mean() for k,v in self.all_eval_metrics.items()}
         eval_outputs = dict(outputs=all_outputs, labels=all_labels)
 

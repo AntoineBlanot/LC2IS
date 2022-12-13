@@ -266,6 +266,7 @@ class PromptAuxSelfA(nn.Module):
         v_low = F.normalize(v_low, dim=1, p=2)
         t_low = F.normalize(t, dim=2, p=2)
         low_score_map = torch.einsum('bchw,bkc->bkhw', v_low, t_low)
+        low_score_map = F.interpolate(input=low_score_map, mode="bilinear", scale_factor=16)
 
         # Visual decoding
         v = self.vision_decoder(visual=v)
@@ -341,6 +342,7 @@ class PromptAuxCrossA(nn.Module):
         v_low = F.normalize(v_low, dim=1, p=2)
         t_low = F.normalize(t, dim=2, p=2)
         low_score_map = torch.einsum('bchw,bkc->bkhw', v_low, t_low)
+        low_score_map = F.interpolate(input=low_score_map, mode="bilinear", scale_factor=16)
 
         # Visual decoding
         v = self.vision_decoder(visual=v, textual=t)
