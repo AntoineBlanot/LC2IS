@@ -3,6 +3,15 @@ import torch
 import torch.nn.functional as F
 
 
+def count_params(model: torch.nn.Module, trainable: bool = False):
+    """Return the number of parameters (all or trainlable only) in millions"""
+    if trainable:
+        params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    else:
+        params = sum(p.numel() for p in model.parameters())
+
+    return params / 1e6
+
 def generate_masks(preds: torch.Tensor, sizes: torch.Tensor) -> List[torch.Tensor]:
     
     upsampled = [

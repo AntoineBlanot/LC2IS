@@ -163,3 +163,18 @@ class FullClassesCollator():
         
         return inputs, classes, sizes, originals
 
+
+class ADE20KCollator():
+
+    def __init__(self) -> None:
+        pass
+
+    def __call__(self, features: List[Any]) -> tuple:
+        img_list, label_list, metas_list = [list(f) for f in zip(*features)]
+
+        img = torch.cat(img_list, dim=0)
+        label = torch.cat(label_list, dim=0)
+        metas = metas_list
+
+        inputs = dict(pixel_values=img, label=label)
+        return inputs, metas

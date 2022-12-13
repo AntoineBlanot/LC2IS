@@ -8,6 +8,18 @@ import torch.nn.functional as F
 
 from einops import rearrange
 
+
+class AuxiliaryLoss(nn.CrossEntropyLoss):
+
+    def __init__(self, weight: Optional[Tensor] = None, size_average=None, ignore_index: int = -100, reduce=None, reduction: str = 'mean', label_smoothing: float = 0) -> None:
+        super().__init__(weight, size_average, ignore_index, reduce, reduction, label_smoothing)
+    
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        B, H, W = target.shape
+        input = F.interpolate(input=input, mode="bilinear", size=H)
+        value = super().forward(input=input, target=target)
+        return value
+
 class NPairLoss(nn.Module):
     """Similar to CrossEntropyLoss"""
 
@@ -24,14 +36,15 @@ class NPairLoss(nn.Module):
             res = self.reduction(res)
         return res
 
-
-class ContrastiveLoss(nn.CrossEntropyLoss):
+class ContrastiveLoss(nn.Module):
     """Params: num_classes if we do not recompute the labels of the batch"""
 
     def __init__(self, weight: Optional[Tensor] = None, size_average=None, ignore_index: int = -100, reduce=None, reduction: str = 'mean', label_smoothing: float = 0) -> None:
-        super().__init__(weight, size_average, ignore_index, reduce, reduction, label_smoothing)
+        super().__init__()
+        self.criterion = nn.CrossEntropyLoss(weight, size_average, ignore_index, reduce, reduction, label_smoothing)
 
     def forward(self, outputs: Tensor, labels: Tensor):
+        # logits_per_text, logits_per_patch = outputs
         H = int(np.sqrt(outputs.shape[1]).item())
 
         # Define output
@@ -39,17 +52,15 @@ class ContrastiveLoss(nn.CrossEntropyLoss):
         out_visual = rearrange(outputs.transpose(-2, -1), "b c (h w) -> b c h w", h=H)
         
         # Define labels
-        label_textual = F.one_hot(labels, num_classes=150).float()
+        label_textual = F.one_hot(labels, num_classes=151).float()
         label_visual = labels
 
         # Define losses
-        loss_textual = nn.CrossEntropyLoss().forward(input=out_textual, target=label_textual)
-        # loss_textual = super().forward(input=out_textual, target=label_textual)
-        loss_visual = nn.CrossEntropyLoss().forward(input=out_visual, target=label_visual)
-        # loss_visual = super().forward(input=out_visual, target=label_visual)
+        loss_textual = self.criterion(input=out_textual, target=label_textual)
+        loss_visual = self.criterion(input=out_visual, target=label_visual)
 
         # print("Visual loss {}, Textual loss {}".format(loss_visual.item(), loss_textual.item()))
 
-        return (loss_textual + loss_visual) / 2
+        return (loss_textual + loss_visual) / 2, loss_visual, loss_textual
 
 
