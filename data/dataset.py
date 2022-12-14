@@ -41,6 +41,8 @@ class ADE20K(Dataset):
         img_path, label_path = self.data[index]
 
         img = F.to_tensor(pic=Image.open(fp=self.img_folder+img_path))  # convert to range (0,1)
+        if img.shape[0] == 1:       # grayscale images
+            img = img.repeat(3, 1, 1)
         label = F.pil_to_tensor(pic=Image.open(fp=self.label_folder+label_path)).to(torch.long)     # does not convert to range (0,1)
         metas = self.get_metas(label=label)
 
